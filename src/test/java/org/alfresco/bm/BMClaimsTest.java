@@ -66,9 +66,9 @@ import com.mongodb.DBObject;
  * @since 1.0
  */
 @RunWith(JUnit4.class)
-public class BM000XTest extends BMTestRunnerListenerAdaptor implements TestConstants
+public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestConstants
 {
-    private static Log logger = LogFactory.getLog(BM000XTest.class);
+    private static Log logger = LogFactory.getLog(BMClaimsTest.class);
     
     @Test
     public void runQuick() throws Exception
@@ -169,7 +169,7 @@ public class BM000XTest extends BMTestRunnerListenerAdaptor implements TestConst
         String chartData = resultsAPI.getTimeSeriesResults(0L, "seconds", 1, 10, true);
         if (logger.isDebugEnabled())
         {
-            logger.debug("BM000X chart data: \n" + chartData);
+            logger.debug("BMClaims chart data: \n" + chartData);
         }
         // Check that we have 10.0 processes per second; across 10s, we should get 100 events
         assertTrue("Expected 10 processes per second.", chartData.contains("\"num\" : 100 , \"numPerSec\" : 10.0"));
