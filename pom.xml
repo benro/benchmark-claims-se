@@ -11,7 +11,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <server.version>2.2.0</server.version>
         <junit.version>4.11</junit.version>
-        <bmcmis.version>1.7-SNAPSHOT</bmcmis.version>
+        <bmcmis.version>1.7</bmcmis.version>
 
         <bm.tomcat.port>9097</bm.tomcat.port>
         <bm.tomcat.ip>localhost</bm.tomcat.ip>
@@ -42,6 +42,7 @@
             <groupId>org.alfresco</groupId>
             <artifactId>alfresco-benchmark-tests-cmis</artifactId>
             <version>${bmcmis.version}</version>
+            <classifier>classes</classifier>
         </dependency>
     </dependencies>
 
