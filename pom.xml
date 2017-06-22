@@ -12,7 +12,7 @@
         <server.version>2.2.0</server.version>
         <junit.version>4.11</junit.version>
 
-        <bm.tomcat.port>9090</bm.tomcat.port>
+        <bm.tomcat.port>9097</bm.tomcat.port>
         <bm.tomcat.ip>localhost</bm.tomcat.ip>
         <bm.tomcat.url>http://${bm.tomcat.ip}:${bm.tomcat.port}/manager/text</bm.tomcat.url>
         <bm.tomcat.server>dev-tomcat</bm.tomcat.server>
@@ -37,11 +37,11 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <!-- Uncomment this for your project
+
     <scm>
-        <connection>scm:svn:SomeURL></connection>
+        <connection>scm:git:https://github.com/AlfrescoBenchmark/benchmark-claims</connection>
     </scm>
-    -->
+
     <!-- Reconfigure this for your project -->
     <build>
         <resources>
