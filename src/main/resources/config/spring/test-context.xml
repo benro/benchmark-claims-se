@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:mongo="http://www.springframework.org/schema/data/mongo"
+    xsi:schemaLocation="http://www.springframework.org/schema/context
+          http://www.springframework.org/schema/context/spring-context-3.0.xsd
+          http://www.springframework.org/schema/data/mongo
+          http://www.springframework.org/schema/data/mongo/spring-mongo-1.0.xsd
+          http://www.springframework.org/schema/beans
+          http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+    <!--
+        alfresco-benchmark-bm-sample: [Project description]
+     -->
+         
+    <!-- Import any application contexts for test runs -->
+    <import resource="classpath:config/spring/test-common-context.xml" />
+    
+    <!--                 -->
+    <!-- DAO             -->
+    <!--                 -->
+
+    <bean id="processDataDAO" class="org.alfresco.bm.data.ProcessDataDAO" >
+        <constructor-arg name="db" ref="testMongoDB" />
+        <constructor-arg name="collection" value="mirrors.${proc.dataMirror}.processes" />
+    </bean>
+
+    <!--                 -->
+    <!-- Reporting       -->
+    <!--                 -->
+
+    <!-- The CompletionEstimator looking at the number of processes performed -->
+    <bean id="completionEstimator.processCount" class="org.alfresco.bm.test.EventCountCompletionEstimator">
+        <constructor-arg name="eventService" ref="eventService" />
+        <constructor-arg name="resultService" ref="resultService" />
+        <constructor-arg name="eventName" value="executeProcess" />
+        <constructor-arg name="eventCount" value="${proc.processCount}" />
+    </bean>
+
+    <!-- Override the default estimator to use the desired estimators -->
+    <bean id="completionEstimator" class="org.alfresco.bm.test.CompoundCompletionEstimator">
+        <constructor-arg name="eventService" ref="eventService" />
+        <constructor-arg name="resultService" ref="resultService" />
+        <constructor-arg name="estimators">
+            <list>
+                <ref bean="completionEstimator.elapsedTime" />
+                <ref bean="completionEstimator.processCount" />
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <!--                 -->
+    <!-- Test Files      -->
+    <!--                 -->
+    <!--
+        Contrived example in order to demonstrate how test files can be obtained.
+        The LocalTestFileService can also be used but it limits how your tests can be distributed.
+    -->
+    <bean id="fileDataService" class="org.alfresco.bm.file.FileDataServiceImpl">
+        <constructor-arg name="db" ref="testMongoDB" />
+        <constructor-arg name="collection" value="${files.collection.name}" />
+    </bean>
+    <bean id="testFileService" class="org.alfresco.bm.file.FtpTestFileService">
+        <constructor-arg name="fileDataService" ref="fileDataService" />
+        <constructor-arg name="localDir" value="${files.cache.dir}" /> 
+        <constructor-arg name="ftpHost" value="${files.ftp.host}" /> 
+        <constructor-arg name="ftpPort" value="${files.ftp.port}" /> 
+        <constructor-arg name="ftpUsername" value="${files.ftp.username}" /> 
+        <constructor-arg name="ftpPassword" value="${files.ftp.password}" /> 
+        <constructor-arg name="ftpPath" value="${files.ftp.path}" /> 
+    </bean>
+
+    <!--                 -->
+    <!-- EventProcessors -->
+    <!--                 -->
+    <!--
+        The event processors will handle events based on their bean names after removal of the 'event.' prefix.
+        So, for example:
+            bean "event.start" will handle events named "start"
+            bean "event.invite" will handle events named "invite"
+        This behavior can be overridden.  See the javadocs of AbstractEventProcessor.
+        
+        The 'producer.process' bean shows how an event can be redirected with an optional delay: in this case, to 'event.doProcess'.
+        The 'producer.users.ready' renames the 'users.ready' event to 'scheduleProcesses' without any other modification.
+        The 'producer.processDone' effectively absorbs the 'processDone' events.
+    -->
+
+    <!-- Good practice to start with an event rename as the 'start' event is reserved -->    
+    <bean id="event.start" class="org.alfresco.bm.event.RenameEventProcessor" parent="event.base" >
+        <constructor-arg name="outputEventName" value="scheduleProcesses" />
+        <property name="chart" value="false"/>
+    </bean>
+    <bean id="event.scheduleProcesses" class="org.alfresco.bm.process.ScheduleProcesses" parent="event.base" >
+        <constructor-arg name="sessionService" ref="sessionService" />
+        <constructor-arg name="processDataDAO" ref="processDataDAO" />
+        <constructor-arg name="testRunFqn" value="${testRunFqn}" />
+        <constructor-arg name="processCount" value="${proc.processCount}" />
+        <constructor-arg name="timeBetweenProcesses" value="${proc.timeBetweenProcesses}" />
+        <property name="batchSize" value="${proc.scheduleBatchSize}" />
+        <property name="chart" value="true" />
+    </bean>
+    <bean id="producer.process" class="org.alfresco.bm.event.producer.RedirectEventProducer" parent="producer.base" >
+        <constructor-arg name="newEventName" value="executeProcess" />
+        <constructor-arg name="delay" value="1" />
+    </bean>
+    <bean id="event.executeProcess" class="org.alfresco.bm.process.ExecuteProcess" parent="event.base" >
+        <constructor-arg name="sessionService" ref="sessionService" />
+        <constructor-arg name="processDataDAO" ref="processDataDAO" />
+        <constructor-arg name="testFileService" ref="testFileService" />
+        <property name="chart" value="true" />
+    </bean>
+    <bean id="producer.processDone" class="org.alfresco.bm.event.producer.TerminateEventProducer" parent="producer.base" />
+    
+</beans>
