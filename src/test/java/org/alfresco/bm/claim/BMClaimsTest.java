@@ -58,9 +58,14 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 
 /**
- * Sample on how to run your test against a local Mongo instance.
- * This does not replace running the test in the full BM environment,
- * but allows initial debugging to take place.
+ * This class provides the primary means of testing the "Claims" load test for a developer.
+ * <p>
+ * MongoDB is started for each test using utilities available from the server framework.
+ * Some patterns will need to be copied from existing tests; the orignal sample shows how
+ * test runs can be executed.  Where a target server must exist in order for the test run
+ * to succeed, you might need to just test the failure conditions.
+ * <p>
+ * This version of the code will start with just some basic test context checks.
  * 
  * @author Derek Hulley
  * @since 1.0
@@ -70,6 +75,12 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
 {
     private static Log logger = LogFactory.getLog(BMClaimsTest.class);
     
+    /**
+     * Perform a basic sanity check of the test context i.e. are the beans all in order?
+     * <p>
+     * The test duration is set to be very short, which should cause the event processing
+     * to stop as soon as it has started.
+     */
     @Test
     public void runQuick() throws Exception
     {
@@ -90,6 +101,12 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
         runner.run(null, null, props);
     }
     
+    /**
+     * Now we let the test run through.<br>
+     * A listener is attached to the runner utility so that the results of the test can be checked.
+     * Even if the test cannot do the full raft of work (if other test infrastructure is missing)
+     * the failure results can still be checked.
+     */
     @Test
     public void runComplete() throws Exception
     {
@@ -140,30 +157,26 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
             Assert.fail(Event.EVENT_NAME_START + " failed: \n" + results.toString());
         }
         
+        // As we are in a phase of moving from the sample 'processes' app
+        // to the 'claims' app, these checks will be updated to keep up with the test as it develops.
+        
         /*
          * 'start' = 1 result
-         * 'scheduleProcesses' = 2 results
-         * 'executeProcess' = 200 results
-         * Sessions = 200
+         * 'ignore' = 10 results
+         * Sessions = 0
          */
-        assertEquals("Incorrect number of event names: " + eventNames, 3, eventNames.size());
+
+        assertEquals("Incorrect number of event names: " + eventNames, 2, eventNames.size());
         assertEquals(
-                "Incorrect number of events: " + "scheduleProcesses",
-                2, resultService.countResultsByEventName("scheduleProcesses"));
-        assertEquals(
-                "Incorrect number of events: " + "executeProcess",
-                200, resultService.countResultsByEventName("executeProcess"));
-        // 203 events in total
-        assertEquals("Incorrect number of results.", 203, resultService.countResults());
-        // Check that we got the failure rate correct ~30%
-        long failures = resultService.countResultsByFailure();
-        assertEquals("Failure rate out of bounds. ", 60.0, (double) failures, 15.0);
+                "Incorrect number of events: " + "ignore",
+                10, resultService.countResultsByEventName("ignore"));
+        // 11 events in total
+        assertEquals("Incorrect number of results.", 11, resultService.countResults());
         
         // Get the summary CSV results for the time period and check some of the values
         String summary = BMTestRunner.getResultsCSV(resultsAPI);
         logger.info(summary);
-        assertTrue(summary.contains(",,scheduleProcesses,     2,"));
-        assertTrue(summary.contains(",,executeProcess,   200,"));
+        assertTrue(summary.contains(",,ignore,    10,"));
         
         // Get the chart results and check
         String chartData = resultsAPI.getTimeSeriesResults(0L, "seconds", 1, 10, true);
@@ -172,11 +185,11 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
             logger.debug("BMClaims chart data: \n" + chartData);
         }
         // Check that we have 10.0 processes per second; across 10s, we should get 100 events
-        assertTrue("Expected 10 processes per second.", chartData.contains("\"num\" : 100 , \"numPerSec\" : 10.0"));
+        assertTrue("Expected 10 events per second.", chartData.contains("\"num\" : 100 , \"numPerSec\" : 10.0"));
         
         // Check the session data
         assertEquals("All sessions should be closed: ", 0L, sessionService.getActiveSessionsCount());
-        assertEquals("All sessions should be used: ", 200L, sessionService.getAllSessionsCount());
+        assertEquals("All sessions should be used: ", 0L, sessionService.getAllSessionsCount());
         
         // Check the log messages
         DBCursor logs = logService.getLogs(null, test, run, LogLevel.INFO, null, null, 0, 500);

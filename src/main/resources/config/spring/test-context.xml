@@ -10,32 +10,24 @@
           http://www.springframework.org/schema/beans
           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
 
+ 
     <!--
-        alfresco-benchmark-bm-sample: [Project description]
+        alfresco-benchmark-tests-cmis: CMIS load test
      -->
          
     <!-- Import any application contexts for test runs -->
     <import resource="classpath:config/spring/test-common-context.xml" />
     
     <!--                 -->
-    <!-- DAO             -->
-    <!--                 -->
-
-    <bean id="processDataDAO" class="org.alfresco.bm.data.ProcessDataDAO" >
-        <constructor-arg name="db" ref="testMongoDB" />
-        <constructor-arg name="collection" value="mirrors.${proc.dataMirror}.processes" />
-    </bean>
-
-    <!--                 -->
     <!-- Reporting       -->
     <!--                 -->
 
     <!-- The CompletionEstimator looking at the number of processes performed -->
-    <bean id="completionEstimator.processCount" class="org.alfresco.bm.test.EventCountCompletionEstimator">
+    <bean id="completionEstimator.sessionCount" class="org.alfresco.bm.test.SessionCountCompletionEstimator">
         <constructor-arg name="eventService" ref="eventService" />
         <constructor-arg name="resultService" ref="resultService" />
-        <constructor-arg name="eventName" value="executeProcess" />
-        <constructor-arg name="eventCount" value="${proc.processCount}" />
+        <constructor-arg name="sessionService" ref="sessionService" />
+        <constructor-arg name="sessionCount" value="${claim.numberOfClaims}" />
     </bean>
 
     <!-- Override the default estimator to use the desired estimators -->
@@ -45,35 +37,74 @@
         <constructor-arg name="estimators">
             <list>
                 <ref bean="completionEstimator.elapsedTime" />
-                <ref bean="completionEstimator.processCount" />
+                <ref bean="completionEstimator.sessionCount" />
             </list>
         </constructor-arg>
     </bean>
 
     <!--                 -->
+    <!-- Data Services   -->
+    <!--                 -->
+    
+    <bean id="userDataService" class="org.alfresco.bm.user.UserDataServiceImpl">
+        <constructor-arg name="db" ref="testMongoDB" />
+        <constructor-arg name="collection" value="${users.collectionName}" />
+    </bean>
+    
+    <!--                 -->
     <!-- Test Files      -->
     <!--                 -->
-    <!--
-        Contrived example in order to demonstrate how test files can be obtained.
-        The LocalTestFileService can also be used but it limits how your tests can be distributed.
-    -->
+
+    <!-- This code is inherited from the benchmark server dependency -->
+    <!-- The config options are pulled in via the FILES and FILES_FTP namespace in app.properties -->
     <bean id="fileDataService" class="org.alfresco.bm.file.FileDataServiceImpl">
         <constructor-arg name="db" ref="testMongoDB" />
         <constructor-arg name="collection" value="${files.collection.name}" />
     </bean>
     <bean id="testFileService" class="org.alfresco.bm.file.FtpTestFileService">
         <constructor-arg name="fileDataService" ref="fileDataService" />
-        <constructor-arg name="localDir" value="${files.cache.dir}" /> 
-        <constructor-arg name="ftpHost" value="${files.ftp.host}" /> 
-        <constructor-arg name="ftpPort" value="${files.ftp.port}" /> 
-        <constructor-arg name="ftpUsername" value="${files.ftp.username}" /> 
-        <constructor-arg name="ftpPassword" value="${files.ftp.password}" /> 
-        <constructor-arg name="ftpPath" value="${files.ftp.path}" /> 
+        <constructor-arg name="localDir" value="${files.cache.dir}" />
+        <constructor-arg name="ftpHost" value="${files.ftp.host}" />
+        <constructor-arg name="ftpPort" value="${files.ftp.port}" />
+        <constructor-arg name="ftpUsername" value="${files.ftp.username}" />
+        <constructor-arg name="ftpPassword" value="${files.ftp.password}" />
+        <constructor-arg name="ftpPath" value="${files.ftp.path}" />
     </bean>
 
     <!--                 -->
+    <!-- CMIS Op Context -->
+    <!--                 -->
+
+    <!-- The cmis benchmark test code is pulled in using the 'classes' classifier -->
+    <!-- The config options are pulled in via the CMIS namespaces in app.properties -->
+    <bean id="cmis.opCtx" class="org.apache.chemistry.opencmis.client.runtime.OperationContextImpl" >
+        <property name="cacheEnabled" value="${ctx.cacheEnabled}" />
+        <property name="filterString" value="${ctx.filter}" />
+        <property name="includeAcls" value="${ctx.includeAcls}" />
+        <property name="includeAllowableActions" value="${ctx.includeAllowableActions}" />
+        <property name="includePathSegments" value="${ctx.includePathSegments}" />
+        <property name="includePolicies" value="${ctx.includePolicies}" />
+        <property name="includeRelationships" value="${ctx.includeRelationships}" />
+        <property name="loadSecondaryTypeProperties" value="${ctx.loadSecondaryTypeProperties}" />
+        <property name="maxItemsPerPage" value="${ctx.maxItemsPerPage}" />
+        <property name="orderBy" value="${ctx.orderBy}" />
+        <property name="renditionFilterString" value="${ctx.renditionFilter}" />
+    </bean>
+    
+    <!--                 -->
     <!-- EventProcessors -->
     <!--                 -->
+    <!-- The original sample 'process' code is going to be commented out. -->
+    <!-- This file will be built up in conjunction with the test BMClaimsTest -->
+    <!-- For now, we just send the 'start' event straight into termination -->
+    <bean id="event.start" class="org.alfresco.bm.event.RaiseEventsEventProcessor" parent="event.base" >
+        <constructor-arg name="outputEventName" value="ignore" />
+        <constructor-arg name="timeBetweenEvents" value="100" />
+        <constructor-arg name="outputEventCount" value="10" />
+    </bean>
+    <bean id="event.ignore" class="org.alfresco.bm.event.DoNothingEventProcessor" parent="event.base" />
+
+    <!-- Original sample stuff after this -->
     <!--
         The event processors will handle events based on their bean names after removal of the 'event.' prefix.
         So, for example:
@@ -85,8 +116,7 @@
         The 'producer.users.ready' renames the 'users.ready' event to 'scheduleProcesses' without any other modification.
         The 'producer.processDone' effectively absorbs the 'processDone' events.
     -->
-
-    <!-- Good practice to start with an event rename as the 'start' event is reserved -->    
+    <!--
     <bean id="event.start" class="org.alfresco.bm.event.RenameEventProcessor" parent="event.base" >
         <constructor-arg name="outputEventName" value="scheduleProcesses" />
         <property name="chart" value="false"/>
@@ -111,5 +141,6 @@
         <property name="chart" value="true" />
     </bean>
     <bean id="producer.processDone" class="org.alfresco.bm.event.producer.TerminateEventProducer" parent="producer.base" />
+    -->
     
 </beans>
