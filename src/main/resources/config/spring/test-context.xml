@@ -27,7 +27,7 @@
         <constructor-arg name="eventService" ref="eventService" />
         <constructor-arg name="resultService" ref="resultService" />
         <constructor-arg name="sessionService" ref="sessionService" />
-        <constructor-arg name="sessionCount" value="${claim.numberOfClaims}" />
+        <constructor-arg name="sessionCount" value="${load.sessionCount}" />
     </bean>
 
     <!-- Override the default estimator to use the desired estimators -->
@@ -36,7 +36,7 @@
         <constructor-arg name="resultService" ref="resultService" />
         <constructor-arg name="estimators">
             <list>
-                <ref bean="completionEstimator.elapsedTime" />
+                <ref bean="completionEstimator.elapsedTime" />  <!-- This is included from the common context file -->
                 <ref bean="completionEstimator.sessionCount" />
             </list>
         </constructor-arg>
@@ -49,6 +49,11 @@
     <bean id="userDataService" class="org.alfresco.bm.user.UserDataServiceImpl">
         <constructor-arg name="db" ref="testMongoDB" />
         <constructor-arg name="collection" value="${users.collectionName}" />
+    </bean>
+    
+    <bean id="claimDataDAO" class="org.alfresco.bm.claim.ClaimDataDAO">
+        <constructor-arg name="db" ref="testMongoDB" />
+        <constructor-arg name="collection" value="${claim.collectionName}" />
     </bean>
     
     <!--                 -->
@@ -94,53 +99,52 @@
     <!--                 -->
     <!-- EventProcessors -->
     <!--                 -->
-    <!-- The original sample 'process' code is going to be commented out. -->
-    <!-- This file will be built up in conjunction with the test BMClaimsTest -->
-    <!-- For now, we just send the 'start' event straight into termination -->
-    <bean id="event.start" class="org.alfresco.bm.event.RaiseEventsEventProcessor" parent="event.base" >
-        <constructor-arg name="outputEventName" value="ignore" />
-        <constructor-arg name="timeBetweenEvents" value="100" />
-        <constructor-arg name="outputEventCount" value="10" />
+    
+    <!-- Check that we have users and claims to work with -->
+    
+    <bean id="event.event.start" class="org.alfresco.bm.user.CheckUserCountEventProcessor" parent="event.base" >
+        <constructor-arg name="userDataService" ref="userDataService" />
+        <constructor-arg name="userCount" value="${claim.minUserCount}" />
+        <property name="eventNameUsersReady" value="claims.usersReady"/>
+        <property name="chart" value="false" />
     </bean>
-    <bean id="event.ignore" class="org.alfresco.bm.event.DoNothingEventProcessor" parent="event.base" />
+    <bean id="producer.claims.usersReady" class="org.alfresco.bm.event.producer.RedirectEventProducer" parent="producer.base" >
+        <constructor-arg name="newEventName" value="claims.checkClaims" />
+    </bean>
+    <bean id="event.claims.checkClaims" class="org.alfresco.bm.claim.CheckClaimsCountEventProcessor" parent="event.base" >
+        <constructor-arg name="claimDataDAO" ref="claimDataDAO" />
+        <constructor-arg name="minClaimCount" value="${claim.minClaimCount}" />
+        <property name="eventNameClaimsReady" value="claims.claimsReady"/>
+        <property name="chart" value="false" />
+    </bean>
+    <bean id="producer.claims.claimsReady" class="org.alfresco.bm.event.producer.RedirectEventProducer" parent="producer.base" >
+        <constructor-arg name="newEventName" value="claims.createSessions" />
+    </bean>
+    
+    <!-- The users and claims are in place. -->
+    <!-- Start generating sessions -->
 
-    <!-- Original sample stuff after this -->
-    <!--
-        The event processors will handle events based on their bean names after removal of the 'event.' prefix.
-        So, for example:
-            bean "event.start" will handle events named "start"
-            bean "event.invite" will handle events named "invite"
-        This behavior can be overridden.  See the javadocs of AbstractEventProcessor.
-        
-        The 'producer.process' bean shows how an event can be redirected with an optional delay: in this case, to 'event.doProcess'.
-        The 'producer.users.ready' renames the 'users.ready' event to 'scheduleProcesses' without any other modification.
-        The 'producer.processDone' effectively absorbs the 'processDone' events.
-    -->
-    <!--
-    <bean id="event.start" class="org.alfresco.bm.event.RenameEventProcessor" parent="event.base" >
-        <constructor-arg name="outputEventName" value="scheduleProcesses" />
+    <!-- Emits events at the prescribed interval, including self-scheduling to keep refreshing the number of events awaiting processing. -->
+    <bean id="event.claims.createSessions" class="org.alfresco.bm.user.GenerateUserSessionsEventProcessor" parent="event.base" >
+        <constructor-arg name="userDataService" ref="userDataService" />
+        <constructor-arg name="outputEventName" value="claim.startSession" />
+        <constructor-arg name="timeBetweenEvents" value="${load.sessionDelay}" />
+        <constructor-arg name="outputEventCount" value="${load.sessionCount}" />
+        <property name="eventNameRaiseEvents" value="claims.createSessions" />
+        <property name="batchSize" value="${load.sessionBatchSize}" />
         <property name="chart" value="false"/>
     </bean>
-    <bean id="event.scheduleProcesses" class="org.alfresco.bm.process.ScheduleProcesses" parent="event.base" >
+    <!-- A new CMIS session is created and bound to the load test's session -->
+    <bean id="event.claim.startSession" class="org.alfresco.bm.cmis.StartCMISSession" parent="event.base" >
+        <constructor-arg name="userDataService" ref="userDataService" />
         <constructor-arg name="sessionService" ref="sessionService" />
-        <constructor-arg name="processDataDAO" ref="processDataDAO" />
-        <constructor-arg name="testRunFqn" value="${testRunFqn}" />
-        <constructor-arg name="processCount" value="${proc.processCount}" />
-        <constructor-arg name="timeBetweenProcesses" value="${proc.timeBetweenProcesses}" />
-        <property name="batchSize" value="${proc.scheduleBatchSize}" />
-        <property name="chart" value="true" />
+        <constructor-arg name="bindingUrl" value="${cmis.bindingUrl}" />
+        <constructor-arg name="bindingType" value="${cmis.bindingType}" />
+        <constructor-arg name="repositoryId" value="${cmis.repositoryId}" />
+        <constructor-arg name="ctx" ref="cmis.opCtx" />
+        <property name="eventNameSessionStarted" value="claim.sessionStarted" />
     </bean>
-    <bean id="producer.process" class="org.alfresco.bm.event.producer.RedirectEventProducer" parent="producer.base" >
-        <constructor-arg name="newEventName" value="executeProcess" />
-        <constructor-arg name="delay" value="1" />
-    </bean>
-    <bean id="event.executeProcess" class="org.alfresco.bm.process.ExecuteProcess" parent="event.base" >
-        <constructor-arg name="sessionService" ref="sessionService" />
-        <constructor-arg name="processDataDAO" ref="processDataDAO" />
-        <constructor-arg name="testFileService" ref="testFileService" />
-        <property name="chart" value="true" />
-    </bean>
-    <bean id="producer.processDone" class="org.alfresco.bm.event.producer.TerminateEventProducer" parent="producer.base" />
-    -->
+    <!-- Terminate each session, for now -->
+    <bean id="producer.claim.sessionStarted" class="org.alfresco.bm.event.producer.TerminateEventProducer" parent="producer.base" />
     
 </beans>
