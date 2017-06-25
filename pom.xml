@@ -11,6 +11,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <server.version>2.2.0</server.version>
         <junit.version>4.11</junit.version>
+        <mockito.version>1.9.5</mockito.version>
         <bmcmis.version>1.7</bmcmis.version>
 
         <bm.tomcat.port>9097</bm.tomcat.port>
@@ -31,19 +32,29 @@
             <artifactId>alfresco-benchmark-util</artifactId>
             <version>${server.version}</version>
         </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <!-- Pull in cmis test code -->
+        
+        <!-- Pull in CMIS load test code -->
         <dependency>
             <groupId>org.alfresco</groupId>
             <artifactId>alfresco-benchmark-tests-cmis</artifactId>
             <version>${bmcmis.version}</version>
             <classifier>classes</classifier>
         </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        
     </dependencies>
 
     <scm>
