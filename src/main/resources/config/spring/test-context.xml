@@ -102,7 +102,7 @@
     
     <!-- Check that we have users and claims to work with -->
     
-    <bean id="event.event.start" class="org.alfresco.bm.user.CheckUserCountEventProcessor" parent="event.base" >
+    <bean id="event.start" class="org.alfresco.bm.user.CheckUserCountEventProcessor" parent="event.base" >
         <constructor-arg name="userDataService" ref="userDataService" />
         <constructor-arg name="userCount" value="${claim.minUserCount}" />
         <property name="eventNameUsersReady" value="claims.usersReady"/>

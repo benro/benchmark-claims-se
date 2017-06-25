@@ -32,6 +32,7 @@ import java.util.TreeSet;
 
 import org.alfresco.bm.api.v1.ResultsRestAPI;
 import org.alfresco.bm.api.v1.TestRestAPI;
+import org.alfresco.bm.data.DataCreationState;
 import org.alfresco.bm.event.Event;
 import org.alfresco.bm.event.EventRecord;
 import org.alfresco.bm.event.EventService;
@@ -46,16 +47,25 @@ import org.alfresco.bm.test.mongo.MongoTestDAO;
 import org.alfresco.bm.tools.BMTestRunner;
 import org.alfresco.bm.tools.BMTestRunnerListener;
 import org.alfresco.bm.tools.BMTestRunnerListenerAdaptor;
+import org.alfresco.bm.user.UserData;
+import org.alfresco.bm.user.UserDataServiceImpl;
+import org.alfresco.mongo.MongoDBFactory;
+import org.alfresco.mongo.MongoDBForTestsFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.springframework.context.ApplicationContext;
 
+import com.mongodb.DB;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
 
 /**
  * This class provides the primary means of testing the "Claims" load test for a developer.
@@ -73,7 +83,57 @@ import com.mongodb.DBObject;
 @RunWith(JUnit4.class)
 public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestConstants
 {
+    public static final String MONGO_TEST_DATABASE = "bm21-data";
+    
     private static Log logger = LogFactory.getLog(BMClaimsTest.class);
+    
+    private MongoDBForTestsFactory dbFactory;
+    private DB testDB;
+    private String testDBHost;
+    
+    /**
+     * Create entries for users and claims
+     */
+    @Before
+    public void createPrerequisiteData() throws Exception
+    {
+        /*
+         * Note that the test utilities create MongoDB instances by default.
+         * However, in order to have access to the DB before the tests kick off,
+         * we have to create that infrastructure here.
+         */
+        dbFactory = new MongoDBForTestsFactory();
+        String uriWithoutDB = dbFactory.getMongoURIWithoutDB();
+        testDBHost = new MongoClientURI(uriWithoutDB).getHosts().get(0);
+        testDB = new MongoDBFactory(new MongoClient(testDBHost), MONGO_TEST_DATABASE).getObject();
+        
+        // The test needs a user
+        // The test defaults point to 'cmis.alfresco.com', which we will assume is going 
+        UserDataServiceImpl userDataService = new UserDataServiceImpl(testDB, "mirrors.cmis.alfresco.com.users");
+        userDataService.afterPropertiesSet();
+        
+        UserData user = new UserData();
+        user.setUsername("admin");
+        user.setPassword("admin");
+        user.setCreationState(DataCreationState.Created);
+        // The rest is not useful for this specific test
+        {
+            user.setEmail("bmarley@reggae.com");
+            user.setDomain("reggae");
+            user.setFirstName("Bob");
+            user.setLastName("Marley");
+        }
+        userDataService.createNewUser(user);
+    }
+    
+    @After
+    public void tearDown() throws Exception
+    {
+        if (dbFactory != null)
+        {
+            dbFactory.destroy();
+        }
+    }
     
     /**
      * Perform a basic sanity check of the test context i.e. are the beans all in order?
@@ -98,7 +158,7 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
                 assertNotEquals("There should be events in the event queue. ", 0L, eventService.count());
             }
         });
-        runner.run(null, null, props);
+        runner.run(testDBHost, testDBHost, props);
     }
     
     /**
@@ -112,7 +172,7 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
     {
         BMTestRunner runner = new BMTestRunner(300000L);         // Should be done in 60s
         runner.addListener(this);
-        runner.run(null, null, null);
+        runner.run(testDBHost, testDBHost, null);
     }
 
     /**
@@ -162,16 +222,16 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
         
         /*
          * 'start' = 1 result
-         * 'ignore' = 10 results
+         * 'claims.checkClaims' = 1 results
          * Sessions = 0
          */
 
         assertEquals("Incorrect number of event names: " + eventNames, 2, eventNames.size());
         assertEquals(
-                "Incorrect number of events: " + "ignore",
-                10, resultService.countResultsByEventName("ignore"));
+                "Incorrect number of events: " + "claims.checkClaims",
+                1, resultService.countResultsByEventName("iclaims.checkClaims"));
         // 11 events in total
-        assertEquals("Incorrect number of results.", 11, resultService.countResults());
+        assertEquals("Incorrect number of results.", 2, resultService.countResults());
         
         // Get the summary CSV results for the time period and check some of the values
         String summary = BMTestRunner.getResultsCSV(resultsAPI);
