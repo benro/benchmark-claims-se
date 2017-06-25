@@ -134,6 +134,23 @@ public class ClaimDataDAO
     }
     
     /**
+     * @param creationState         the state to count or <tt>null</tt> to count all
+     * 
+     * @return                      the number of claims with the given state
+     */
+    public long countClaims(DataCreationState creationState)
+    {
+        BasicDBObjectBuilder queryObjBuilder = BasicDBObjectBuilder.start();
+        if (creationState != null)
+        {
+            queryObjBuilder.add(ClaimData.FIELD_CREATION_STATE, creationState.toString());
+        }
+        DBObject queryObj = queryObjBuilder.get();
+        
+        return collection.count(queryObj);
+    }
+    
+    /**
      * Find a claim by its ID
      * 
      * @param claimId               the id of the claim to find

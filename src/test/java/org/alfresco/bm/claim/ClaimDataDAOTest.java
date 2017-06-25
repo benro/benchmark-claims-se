@@ -18,6 +18,7 @@
  */
 package org.alfresco.bm.claim;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -87,6 +88,8 @@ public class ClaimDataDAOTest
             ClaimData claimData = claimDataDAO.findClaimById(claimId);
             assertNotNull("Expect to find all the created claims.", claimData);
         }
+        assertEquals("Expected the count to match", CLAIM_IDS.length, claimDataDAO.countClaims(null));
+        assertEquals("Expected the count to match", CLAIM_IDS.length, claimDataDAO.countClaims(DataCreationState.Unknown));
     }
     
     @Test
@@ -118,9 +121,11 @@ public class ClaimDataDAOTest
         
         claimData = claimDataDAO.getRandomClaim(DataCreationState.Created);
         assertNull("Expected to NOT find a random 'Created' claim.", claimData);
+        assertEquals(0, claimDataDAO.countClaims(DataCreationState.Created));
         
         claimDataDAO.updateClaimState("A-123", DataCreationState.Created);
         claimData = claimDataDAO.getRandomClaim(DataCreationState.Created);
         assertNotNull("Expected to find a random 'Created' claim.", claimData);
+        assertEquals(1, claimDataDAO.countClaims(DataCreationState.Created));
     }
 }
