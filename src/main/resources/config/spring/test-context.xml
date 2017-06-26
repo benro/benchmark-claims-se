@@ -134,6 +134,7 @@
         <property name="batchSize" value="${load.sessionBatchSize}" />
         <property name="chart" value="false"/>
     </bean>
+    
     <!-- A new CMIS session is created and bound to the load test's session -->
     <bean id="event.claims.startSession" class="org.alfresco.bm.cmis.StartCMISSession" parent="event.base" >
         <constructor-arg name="userDataService" ref="userDataService" />
@@ -144,14 +145,35 @@
         <constructor-arg name="ctx" ref="cmis.opCtx" />
         <property name="eventNameSessionStarted" value="claims.sessionStarted" />
     </bean>
+    <bean id="producer.claims.sessionStarted" class="org.alfresco.bm.event.producer.RedirectEventProducer" parent="producer.base">
+        <constructor-arg name="newEventName" value="claims.chooseClaim" />
+    </bean>
+    
     <!-- Choose a random Claim ID and associated it with the session -->
-    <bean id="event.claims.sessionStarted" class="org.alfresco.bm.claim.ChooseClaimEventProcessor" parent="event.base">
+    <bean id="event.claims.chooseClaim" class="org.alfresco.bm.claim.ChooseClaimEventProcessor" parent="event.base">
         <constructor-arg name="claimDataDAO" ref="claimDataDAO" />
         <constructor-arg name="sessionService" ref="sessionService" />
         <property name="eventNameClaimChosen" value="claims.claimChosen" />
         <property name="chart" value="false"/>
     </bean>
-    <!-- Terminate each session, for now -->
-    <bean id="producer.claims.claimChosen" class="org.alfresco.bm.event.producer.TerminateEventProducer" parent="producer.base" />
+    <bean id="producer.claims.claimChosen" class="org.alfresco.bm.event.producer.RedirectEventProducer" parent="producer.base">
+        <constructor-arg name="newEventName" value="claims.chooseScenario" />
+    </bean>
+
+    <!--                 -->
+    <!-- Scenarios       -->
+    <!--                 -->
+
+    <!-- Scenarios are defined in their own files.  We import these and get the weightings as well. -->
+    <import resource="classpath:config/spring/claims-scenario-01-context.xml" />
+
+    <!-- The 'claims.eventWeight.scenarioNN' beans are interogated by this bean. -->
+    <bean id="producer.claims.chooseScenario" class="org.alfresco.bm.event.producer.RandomRedirectEventProducer" parent="producer.base" >
+        <constructor-arg name="eventWeights">
+            <list>
+                <ref bean="claims.eventWeight.scenario01" />
+            </list>
+        </constructor-arg>
+    </bean>
     
 </beans>

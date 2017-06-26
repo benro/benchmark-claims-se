@@ -233,10 +233,10 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
          * 'claims.checkClaims' = 1 result
          * 'claims.createSessions' = 1 result
          * 'claims.startSession' = 20
-         * 'claims.claimChosen' = 20
+         * 'claims.chooseClaim' = 20
+         * etc
          */
 
-        assertEquals("Incorrect number of event names: " + eventNames, 5, eventNames.size());
         assertEquals(
                 "Incorrect number of events: " + "claims.checkClaims",
                 1, resultService.countResultsByEventName("claims.checkClaims"));
@@ -247,11 +247,21 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
                 "Incorrect number of events: " + "claims.startSession",
                 20, resultService.countResultsByEventName("claims.startSession"));
         assertEquals(
-                "Incorrect number of events: " + "claims.sessionStarted",
-                20, resultService.countResultsByEventName("claims.sessionStarted"));
-        // N events in total
-        assertEquals("Incorrect number of results.", 43, resultService.countResults());
-        
+                "Incorrect number of events: " + "claims.chooseClaim",
+                20, resultService.countResultsByEventName("claims.chooseClaim"));
+
+        // Compare the rest with simple string comparison
+        Set<String> expectedEventNames = new TreeSet<String>();
+        expectedEventNames.add("start");
+        expectedEventNames.add("claims.checkClaims");
+        expectedEventNames.add("claims.createSessions");
+        expectedEventNames.add("claims.startSession");
+        expectedEventNames.add("claims.chooseClaim");
+        expectedEventNames.add("claims.scenario.01.getClaim");
+        expectedEventNames.add("claims.scenario.01.listClaimContents");
+        // Use the toString() as the TreeSet is ordered and the difference reporting is better
+        assertEquals("Unexpected event names. ", expectedEventNames.toString(), eventNames.toString());
+
         // Get the summary CSV results for the time period and check some of the values
         String summary = BMTestRunner.getResultsCSV(resultsAPI);
         logger.info(summary);
