@@ -22,13 +22,16 @@
 
     <!-- TODO: There will be claims-specific processors added.  Right now, we'll just go with the old folder finder. -->
     <bean id="event.claims.scenario.01.getClaim" class="org.alfresco.bm.cmis.FindFolder" parent="event.base" >
-        <property name="eventNameFolderFound" value="claims.scenario.01.listClaimContents" />
+        <property name="eventNameFolderFound" value="claims.scenario.01.gotClaim" />
+    </bean>
+    <bean id="claims.scenario.01.gotClaim" class="org.alfresco.bm.event.producer.RedirectEventProducer" parent="producer.base">
+        <constructor-arg name="newEventName" value="claims.scenario.01.listClaimContents" />
+        <constructor-arg name="delay" value="${claims.userDelayMs}" />
     </bean>
      
     <bean id="event.claims.scenario.01.listClaimContents" class="org.alfresco.bm.cmis.ListFolderContents" parent="event.base" >
-        <property name="eventNameFolderContentsListed" value="claims.scenario.01.done" />
+        <property name="eventNameFolderContentsListed" value="claims.scenario.01.claimContentsListed" />
     </bean>
-     
-    <bean id="producer.claims.scenario.01.done" class="org.alfresco.bm.event.producer.TerminateEventProducer" parent="producer.base" />
+    <bean id="producer.claims.scenario.01.claimContentsListed" class="org.alfresco.bm.event.producer.TerminateEventProducer" parent="producer.base" />
      
 </beans>

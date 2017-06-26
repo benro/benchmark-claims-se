@@ -154,6 +154,8 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
         Properties props = new Properties();
         props.put("load.sessionDelay", "500");                  // Need enough delay for the time check to kick in
         props.put("test.duration", "1");                        // By the first check, it should say it's overdue a stop
+        props.put("claims.userDelayMs", "10");                  // Shorten the think time
+
         BMTestRunner runner = new BMTestRunner(20000L);
         runner.addListener(new BMTestRunnerListenerAdaptor()
         {
@@ -178,9 +180,12 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
     @Test
     public void runComplete() throws Exception
     {
+        Properties props = new Properties();
+        props.put("claims.userDelayMs", "10");                  // Shorten the think time
+
         BMTestRunner runner = new BMTestRunner(300000L);         // Should be done in 60s
         runner.addListener(this);
-        runner.run(testDBHost, testDBHost, null);
+        runner.run(testDBHost, testDBHost, props);
     }
 
     /**
