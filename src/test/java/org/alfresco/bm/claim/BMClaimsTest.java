@@ -258,9 +258,9 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
         {
             logger.debug("BMClaims chart data: \n" + chartData);
         }
-//        // Check that we have 10.0 processes per second; across 10s, we should get 100 events
-//        assertTrue("Expected 10 events per second.", chartData.contains("\"num\" : 100 , \"numPerSec\" : 10.0"));
-//        
+        
+        // Make sure that events received a traceable session ID
+        assertEquals("Incorrect number of sessions: ", 20, sessionService.getAllSessionsCount());
         // Check the session data
         assertEquals("All sessions should be closed: ", 0L, sessionService.getActiveSessionsCount());
         assertEquals("All sessions should be used: ", 0L, sessionService.getAllSessionsCount());
