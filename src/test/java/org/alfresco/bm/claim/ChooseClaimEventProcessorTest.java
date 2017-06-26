@@ -83,5 +83,6 @@ public class ChooseClaimEventProcessorTest
         
         // The output object remains unchanged
         assertTrue(result.getNextEvents().get(0).getData() == eventData);
+        assertEquals(ChooseClaimEventProcessor.EVENT_NAME_CLAIM_CHOSEN, result.getNextEvents().get(0).getName());
     }
 }

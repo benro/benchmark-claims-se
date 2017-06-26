@@ -148,10 +148,11 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
      * The test duration is set to be very short, which should cause the event processing
      * to stop as soon as it has started.
      */
-//    @Test
+    @Test
     public void runQuick() throws Exception
     {
         Properties props = new Properties();
+        props.put("load.sessionDelay", "500");                  // Need enough delay for the time check to kick in
         props.put("test.duration", "1");                        // By the first check, it should say it's overdue a stop
         BMTestRunner runner = new BMTestRunner(20000L);
         runner.addListener(new BMTestRunnerListenerAdaptor()
@@ -232,9 +233,10 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
          * 'claims.checkClaims' = 1 result
          * 'claims.createSessions' = 1 result
          * 'claims.startSession' = 20
+         * 'claims.claimChosen' = 20
          */
 
-        assertEquals("Incorrect number of event names: " + eventNames, 4, eventNames.size());
+        assertEquals("Incorrect number of event names: " + eventNames, 5, eventNames.size());
         assertEquals(
                 "Incorrect number of events: " + "claims.checkClaims",
                 1, resultService.countResultsByEventName("claims.checkClaims"));
@@ -244,8 +246,11 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
         assertEquals(
                 "Incorrect number of events: " + "claims.startSession",
                 20, resultService.countResultsByEventName("claims.startSession"));
-        // 23 events in total
-        assertEquals("Incorrect number of results.", 23, resultService.countResults());
+        assertEquals(
+                "Incorrect number of events: " + "claims.sessionStarted",
+                20, resultService.countResultsByEventName("claims.sessionStarted"));
+        // N events in total
+        assertEquals("Incorrect number of results.", 43, resultService.countResults());
         
         // Get the summary CSV results for the time period and check some of the values
         String summary = BMTestRunner.getResultsCSV(resultsAPI);
@@ -261,9 +266,6 @@ public class BMClaimsTest extends BMTestRunnerListenerAdaptor implements TestCon
         
         // Make sure that events received a traceable session ID
         assertEquals("Incorrect number of sessions: ", 20, sessionService.getAllSessionsCount());
-        // Check the session data
-        assertEquals("All sessions should be closed: ", 0L, sessionService.getActiveSessionsCount());
-        assertEquals("All sessions should be used: ", 0L, sessionService.getAllSessionsCount());
         
         // Check the log messages
         DBCursor logs = logService.getLogs(null, test, run, LogLevel.INFO, null, null, 0, 500);

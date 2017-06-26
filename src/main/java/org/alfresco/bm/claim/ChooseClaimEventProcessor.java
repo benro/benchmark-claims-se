@@ -48,7 +48,7 @@ import com.mongodb.DBObject;
  */
 public class ChooseClaimEventProcessor extends AbstractEventProcessor
 {
-    public static final String EVENT_NAME_CLAIM_CHOSEN = "claim.chosen";
+    public static final String EVENT_NAME_CLAIM_CHOSEN = "claims.claimChosen";
     public static final String ERR_NO_SESSION = "Expected an active session in the inbound event";
     public static final String ERR_NO_USER_IN_SESSION = "There is no user in the current session";
     public static final String ERR_INCORRECT_INBOUND_TYPE = "Expected CMISEventData as input";

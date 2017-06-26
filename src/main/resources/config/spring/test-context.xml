@@ -142,9 +142,16 @@
         <constructor-arg name="bindingType" value="${cmis.bindingType}" />
         <constructor-arg name="repositoryId" value="${cmis.repositoryId}" />
         <constructor-arg name="ctx" ref="cmis.opCtx" />
-        <property name="eventNameSessionStarted" value="claim.sessionStarted" />
+        <property name="eventNameSessionStarted" value="claims.sessionStarted" />
+    </bean>
+    <!-- Choose a random Claim ID and associated it with the session -->
+    <bean id="event.claims.sessionStarted" class="org.alfresco.bm.claim.ChooseClaimEventProcessor" parent="event.base">
+        <constructor-arg name="claimDataDAO" ref="claimDataDAO" />
+        <constructor-arg name="sessionService" ref="sessionService" />
+        <property name="eventNameClaimChosen" value="claims.claimChosen" />
+        <property name="chart" value="false"/>
     </bean>
     <!-- Terminate each session, for now -->
-    <bean id="producer.claim.sessionStarted" class="org.alfresco.bm.event.producer.TerminateEventProducer" parent="producer.base" />
+    <bean id="producer.claims.claimChosen" class="org.alfresco.bm.event.producer.TerminateEventProducer" parent="producer.base" />
     
 </beans>
