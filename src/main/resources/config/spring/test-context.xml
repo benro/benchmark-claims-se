@@ -127,7 +127,7 @@
     <!-- Emits events at the prescribed interval, including self-scheduling to keep refreshing the number of events awaiting processing. -->
     <bean id="event.claims.createSessions" class="org.alfresco.bm.user.GenerateUserSessionsEventProcessor" parent="event.base" >
         <constructor-arg name="userDataService" ref="userDataService" />
-        <constructor-arg name="outputEventName" value="claim.startSession" />
+        <constructor-arg name="outputEventName" value="claims.startSession" />
         <constructor-arg name="timeBetweenEvents" value="${load.sessionDelay}" />
         <constructor-arg name="outputEventCount" value="${load.sessionCount}" />
         <property name="eventNameRaiseEvents" value="claims.createSessions" />
@@ -135,7 +135,7 @@
         <property name="chart" value="false"/>
     </bean>
     <!-- A new CMIS session is created and bound to the load test's session -->
-    <bean id="event.claim.startSession" class="org.alfresco.bm.cmis.StartCMISSession" parent="event.base" >
+    <bean id="event.claims.startSession" class="org.alfresco.bm.cmis.StartCMISSession" parent="event.base" >
         <constructor-arg name="userDataService" ref="userDataService" />
         <constructor-arg name="sessionService" ref="sessionService" />
         <constructor-arg name="bindingUrl" value="${cmis.bindingUrl}" />
